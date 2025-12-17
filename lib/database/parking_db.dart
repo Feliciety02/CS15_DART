@@ -21,7 +21,7 @@ class ParkingDB {
     );
   }
 
-  /// get active (not checked out) ticket
+  /// get active (not checked out) ticket by plate
   static Future<Map<String, dynamic>?> getActiveTicket(
     String plate,
   ) async {
@@ -54,6 +54,28 @@ class ParkingDB {
       },
       where: 'plate = ? AND time_out IS NULL',
       whereArgs: [plate],
+    );
+  }
+
+  /// 🔹 ACTIVE VEHICLES
+  static Future<List<Map<String, dynamic>>> getActiveTickets() async {
+    final db = await DBHelper.database;
+
+    return await db.query(
+      'parking_tickets',
+      where: 'time_out IS NULL',
+      orderBy: 'time_in DESC',
+    );
+  }
+
+  /// 🔹 CHECKED OUT VEHICLES
+  static Future<List<Map<String, dynamic>>> getCompletedTickets() async {
+    final db = await DBHelper.database;
+
+    return await db.query(
+      'parking_tickets',
+      where: 'time_out IS NOT NULL',
+      orderBy: 'time_out DESC',
     );
   }
 }

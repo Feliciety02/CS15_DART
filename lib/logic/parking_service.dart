@@ -11,35 +11,40 @@ class ParkingTicket {
     required this.plateNumber,
     required this.slot,
     required this.timeIn,
+    this.timeOut,
+    this.totalFee,
   });
 }
 
 class ParkingService {
-  // parking slots (same as Python repo)
   final List<String> _slots = [
     'A1','A2','A3','A4','A5','A6',
     'B1','B2','B3','B4','B5','B6',
     'C1','C2','C3','C4','C5','C6',
   ];
 
-  final List<ParkingTicket> _activeTickets = [];
-
-  /// get first available slot
-  String? _getAvailableSlot() {
-    final usedSlots = _activeTickets.map((t) => t.slot).toSet();
-    for (final slot in _slots) {
-      if (!usedSlots.contains(slot)) {
-        return slot;
-      }
-    }
-    return null;
+  Future<List<String>> getAvailableSlots() async {
+    final active = await ParkingDB.getActiveTickets();
+    final used = active.map((t) => (t['slot'] as String)).toSet();
+    return _slots.where((s) => !used.contains(s)).toList();
   }
 
-  /// CHECK IN
-  Future<ParkingTicket> checkIn(String plateNumber) async {
-    final slot = _getAvailableSlot();
-    if (slot == null) {
-      throw Exception('Parking is full');
+  Future<int> getTotalSlots() async => _slots.length;
+
+  Future<int> getOccupiedCount() async {
+    final active = await ParkingDB.getActiveTickets();
+    return active.length;
+  }
+
+  Future<int> getAvailableCount() async {
+    final occupied = await getOccupiedCount();
+    return _slots.length - occupied;
+  }
+
+  Future<ParkingTicket> checkIn(String plateNumber, String slot) async {
+    final available = await getAvailableSlots();
+    if (!available.contains(slot)) {
+      throw Exception('Slot already occupied');
     }
 
     final ticket = ParkingTicket(
@@ -48,45 +53,42 @@ class ParkingService {
       timeIn: DateTime.now(),
     );
 
-    // save to database
     await ParkingDB.insertTicket(
       plate: plateNumber,
       slot: slot,
       timeIn: ticket.timeIn.toIso8601String(),
     );
 
-    _activeTickets.add(ticket);
     return ticket;
   }
 
-  /// CHECK OUT
   Future<ParkingTicket> checkOut(String plateNumber) async {
-    final ticket = _activeTickets.firstWhere(
-      (t) => t.plateNumber == plateNumber,
-      orElse: () => throw Exception('Car not found'),
-    );
+    final active = await ParkingDB.getActiveTicket(plateNumber);
+    if (active == null) {
+      throw Exception('Car not found or already checked out');
+    }
 
-    ticket.timeOut = DateTime.now();
+    final slot = active['slot'] as String;
+    final timeInStr = active['time_in'] as String;
+    final timeIn = DateTime.parse(timeInStr);
 
-    final duration = ticket.timeOut!.difference(ticket.timeIn);
-    final hours = duration.inMinutes / 60;
-
+    final timeOut = DateTime.now();
+    final hours = timeOut.difference(timeIn).inMinutes / 60;
     final billedHours = hours.ceil() < 1 ? 1 : hours.ceil();
-    ticket.totalFee = billedHours * 30.0;
+    final fee = billedHours * 30.0;
 
-    // update database
     await ParkingDB.checkoutTicket(
       plate: plateNumber,
-      timeOut: ticket.timeOut!.toIso8601String(),
-      fee: ticket.totalFee!,
+      timeOut: timeOut.toIso8601String(),
+      fee: fee,
     );
 
-    _activeTickets.remove(ticket);
-    return ticket;
+    return ParkingTicket(
+      plateNumber: plateNumber,
+      slot: slot,
+      timeIn: timeIn,
+      timeOut: timeOut,
+      totalFee: fee,
+    );
   }
-
-  // dashboard helpers
-  int get totalSlots => _slots.length;
-  int get occupiedSlots => _activeTickets.length;
-  int get availableSlots => totalSlots - occupiedSlots;
 }

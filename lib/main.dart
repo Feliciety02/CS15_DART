@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
-import 'screens/dashboard_screen.dart';
-import 'logic/parking_service.dart';
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+import 'logic/parking_service.dart';
+import 'screens/dashboard_screen.dart';
 
 final ParkingService parkingService = ParkingService();
 
@@ -16,7 +16,6 @@ void main() {
   runApp(const ParkingApp());
 }
 
-
 class ParkingApp extends StatelessWidget {
   const ParkingApp({super.key});
 
@@ -26,8 +25,29 @@ class ParkingApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Parking System',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: const Color(0xFFF4F6FA),
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF0E1625),
+        primaryColor: const Color(0xFF2563EB),
+        cardColor: const Color(0xFF141E30),
+        dividerColor: Colors.white10,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF0E1625),
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+        textTheme: const TextTheme(
+          headlineSmall: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          bodyMedium: TextStyle(fontSize: 14, color: Colors.white70),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
       ),
       home: const DashboardScreen(),
     );
